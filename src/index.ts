@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-// import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 
 import * as os from 'os';
@@ -23,11 +22,6 @@ registryTools(server);
 // 启动
 async function main() {
   try {
-    // Stdio服务器
-    // const transport = new StdioServerTransport();
-    // await server.connect(transport);
-    // console.log('MCP文件操作服务器已启动...');
-
     // SSE服务器
     const app = express();
     app.use(express.json());
