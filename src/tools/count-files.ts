@@ -4,44 +4,44 @@ import fs from 'fs-extra';
 
 import * as os from 'os';
 
-// 获取用户名
+// Get username
 export const username: string = os.userInfo().username;
 
 /**
- * 工具1：统计文件夹中的文件数量
- * 注册工具到MCP服务器
- * @param server MCP服务器实例
+ * Tool 1: Count files in directory
+ * Registers the tool to the MCP server
+ * @param server MCP server instance
  */
 const registerTool = (server: McpServer) => {
   server.registerTool(
     'count-files',
     {
-      title: '统计文件数量',
+      title: 'Count Files',
       description:
-        '统计指定文件夹中的文件数量。参数：folderPath (可选) - 文件夹路径，默认为桌面',
+        'Count files in the specified directory. Parameters: folderPath (optional) - directory path, defaults to desktop',
       inputSchema: {
         folderPath: z.string().optional()
       }
     },
     async ({ folderPath }) => {
       try {
-        // 默认使用桌面路径
+        // Default to desktop path
         const targetPath = folderPath || `/Users/${username}/Desktop`;
 
-        // 检查路径是否存在
+        // Check if path exists
         if (!(await fs.pathExists(targetPath))) {
           return {
             content: [
               {
                 type: 'text',
-                text: `错误：路径 ${targetPath} 不存在`
+                text: `Error: Path ${targetPath} does not exist`
               }
             ],
             isError: true
           };
         }
 
-        // 读取目录
+        // Read directory
         const items = await fs.readdir(targetPath);
         const fileCount = items.length;
 
@@ -49,7 +49,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text',
-              text: `文件夹 ${targetPath} 中共有 ${fileCount} 个文件/文件夹`
+              text: `Directory ${targetPath} contains ${fileCount} file(s)/folder(s)`
             }
           ]
         };
@@ -58,7 +58,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text',
-              text: `统计文件时发生错误: ${error instanceof Error ? error.message : String(error)}`
+              text: `Error counting files: ${error instanceof Error ? error.message : String(error)}`
             }
           ],
           isError: true

@@ -11,8 +11,8 @@
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,
 
-    "baseUrl": ".", //查询的基础路径
-    "paths": { "@/*": ["src/*"] } //路径映射,配合别名使用
+    "baseUrl": ".", // Base path for module resolution
+    "paths": { "@/*": ["src/*"] } // Path mapping for alias usage
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

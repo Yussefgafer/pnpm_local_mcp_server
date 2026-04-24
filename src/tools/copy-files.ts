@@ -4,17 +4,17 @@ import fs from 'fs-extra';
 import * as path from 'path';
 
 /**
- * 工具：复制文件或文件夹
- * 注册工具到MCP服务器
- * @param server MCP服务器实例
+ * Tool: Copy Files or Directories
+ * Registers the tool to the MCP server
+ * @param server MCP server instance
  */
 const registerTool = (server: McpServer) => {
   server.registerTool(
     'copy-files',
     {
-      title: '复制文件',
+      title: 'Copy Files',
       description:
-        '复制文件或文件夹到目标位置。参数：sourcePath - 源文件/文件夹路径 (必需)；targetPath - 目标路径 (必需)；overwrite - 是否覆盖已存在文件 (可选，默认false)；preserveTimestamps - 是否保留时间戳 (可选，默认true)',
+        'Copy files or directories to a target location. Parameters: sourcePath - source file/directory path (required); targetPath - target path (required); overwrite - whether to overwrite existing files (optional, default false); preserveTimestamps - whether to preserve timestamps (optional, default true)',
       inputSchema: {
         sourcePath: z.string(),
         targetPath: z.string(),
@@ -29,45 +29,45 @@ const registerTool = (server: McpServer) => {
       preserveTimestamps = true
     }) => {
       try {
-        // 检查源文件是否存在
+        // Check if source file exists
         if (!(await fs.pathExists(sourcePath))) {
           return {
             content: [
               {
                 type: 'text',
-                text: `错误：源文件或文件夹 ${sourcePath} 不存在`
+                text: `Error: Source file or directory ${sourcePath} does not exist`
               }
             ],
             isError: true
           };
         }
 
-        // 检查目标是否已存在
+        // Check if target already exists
         const targetExists = await fs.pathExists(targetPath);
         if (targetExists && !overwrite) {
           return {
             content: [
               {
                 type: 'text',
-                text: `错误：目标路径 ${targetPath} 已存在，请设置 overwrite=true 来覆盖`
+                text: `Error: Target path ${targetPath} already exists, set overwrite=true to overwrite`
               }
             ],
             isError: true
           };
         }
 
-        // 获取源文件信息
+        // Get source file information
         const sourceStats = await fs.stat(sourcePath);
         const isDirectory = sourceStats.isDirectory();
         const sourceSize = isDirectory
           ? await calculateDirectorySize(sourcePath)
           : sourceStats.size;
 
-        // 确保目标目录存在
+        // Ensure target directory exists
         const targetDir = isDirectory ? targetPath : path.dirname(targetPath);
         await fs.ensureDir(targetDir);
 
-        // 执行复制操作
+        // Execute copy operation
         const copyOptions: any = {
           overwrite: overwrite,
           preserveTimestamps: preserveTimestamps
@@ -75,23 +75,23 @@ const registerTool = (server: McpServer) => {
 
         await fs.copy(sourcePath, targetPath, copyOptions);
 
-        // 验证复制是否成功
+        // Verify copy was successful
         if (!(await fs.pathExists(targetPath))) {
           return {
             content: [
               {
                 type: 'text',
-                text: '错误：复制操作完成但目标文件未找到'
+                text: 'Error: Copy operation completed but target file not found'
               }
             ],
             isError: true
           };
         }
 
-        // 验证复制后的文件
+        // Verify copied file
         await fs.stat(targetPath);
 
-        // 计算文件数量（如果是目录）
+        // Count files (if directory)
         let fileCount = 1;
         if (isDirectory) {
           fileCount = await countFilesInDirectory(targetPath);
@@ -101,7 +101,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text',
-              text: `复制完成！\n源路径: ${sourcePath}\n目标路径: ${targetPath}\n类型: ${isDirectory ? '文件夹' : '文件'}\n大小: ${Math.round(sourceSize / 1024)}KB\n${isDirectory ? `包含文件: ${fileCount} 个` : ''}\n保留时间戳: ${preserveTimestamps ? '是' : '否'}`
+              text: `Copy completed!\nSource: ${sourcePath}\nTarget: ${targetPath}\nType: ${isDirectory ? 'Directory' : 'File'}\nSize: ${Math.round(sourceSize / 1024)}KB\n${isDirectory ? `Files included: ${fileCount}` : ''}\nPreserve timestamps: ${preserveTimestamps ? 'Yes' : 'No'}`
             }
           ]
         };
@@ -110,7 +110,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text',
-              text: `复制文件时发生错误: ${error instanceof Error ? error.message : String(error)}`
+              text: `Error copying file: ${error instanceof Error ? error.message : String(error)}`
             }
           ],
           isError: true
@@ -121,7 +121,7 @@ const registerTool = (server: McpServer) => {
 };
 
 /**
- * 计算目录大小
+ * Calculate directory size
  */
 async function calculateDirectorySize(dirPath: string): Promise<number> {
   let totalSize = 0;
@@ -143,7 +143,7 @@ async function calculateDirectorySize(dirPath: string): Promise<number> {
 }
 
 /**
- * 统计目录中的文件数量
+ * Count files in directory
  */
 async function countFilesInDirectory(dirPath: string): Promise<number> {
   let fileCount = 0;
