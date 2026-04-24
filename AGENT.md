@@ -8,7 +8,7 @@
 **License:** MIT  
 **Author:** lxKylin  
 **Repository:** https://github.com/lxKylin/file-operation-mcp  
-**Description:** A file operation server based on Model Context Protocol (MCP), providing file statistics, list queries, and image compression functionality.
+**Description:** A comprehensive file operation server based on Model Context Protocol (MCP), providing 14 powerful tools for file management, code search, HTTP requests, and command execution.
 
 ## Project Structure
 
@@ -16,12 +16,25 @@
 /media/youusef/ProgramS/Div/MCP-server/file-operation-mcp/
 ├── src/
 │   ├── index.ts              # Main server entry point
-│   └── tools/                # MCP tools implementation
-│       ├── index.ts          # Tools registry
-│       ├── count-files.ts    # File counting tool
-│       ├── list-files.ts     # File listing tool
-│       ├── copy-files.ts     # File copy tool
-│       └── move-files.ts     # File move tool
+│   ├── tools/                # MCP tools implementation
+│   │   ├── index.ts          # Tools registry
+│   │   ├── count-files.ts    # File counting tool
+│   │   ├── list-files.ts     # File listing tool
+│   │   ├── copy-files.ts     # File copy tool
+│   │   ├── move-files.ts     # File move tool
+│   │   ├── delete.ts         # Delete file/directory (auto-detect)
+│   │   ├── create-item.ts    # Create file/directory
+│   │   ├── read-file.ts      # Read file with size protection
+│   │   ├── write-file.ts     # Write file (saves to tmp on errors)
+│   │   ├── execute-command.ts # Execute shell commands
+│   │   ├── find-and-replace.ts # Find and replace in files
+│   │   ├── map.ts            # Generate project tree map
+│   │   ├── http-request.ts   # HTTP requests (GET/POST/PUT/DELETE)
+│   │   ├── grep.ts           # Search with regex in files
+│   │   └── glob.ts           # Find files by glob pattern
+│   └── utils/                # Utility functions
+│       └── timeout.ts        # Timeout utilities
+├── tmp/                      # Temporary files storage
 ├── dist/                     # Built distribution files
 ├── package.json              # Project dependencies and scripts
 ├── tsconfig.json            # TypeScript configuration
@@ -42,6 +55,7 @@
 - **express** (v5.1.0): HTTP server framework for SSE transport
 - **zod** (v3.25.76): TypeScript-first schema validation
 - **fs-extra** (v11.3.0): Enhanced file system operations
+- **axios** (v1.11.0): HTTP client for API requests
 
 ### Development Dependencies
 - **@rslib/core** (v0.10.5): Build tool for libraries
@@ -55,12 +69,46 @@
 
 ## MCP Tools (Available Functions)
 
-The server provides 4 MCP tools for file operations:
+The server provides 14 MCP tools for file operations:
 
+### Basic File Operations
 1. **count-files**: Statistics on file count in specified folders
 2. **list-files**: Detailed file list with names, types, and sizes
 3. **copy-files**: Copy files/folders while preserving timestamps
 4. **move-files**: Move files/folders (cut operation)
+5. **delete**: Delete file or directory with automatic type detection. Returns helpful error if type mismatch.
+6. **create-item**: Create file or directory. Specify type="file" or type="directory". Supports optional initial content for files.
+7. **read-file**: Read text file content with maxChars limit (default 10000). Returns statistics if truncated. Rejects binary files.
+8. **write-file**: Write to new file only (fails if exists). On any error, saves content to tmp/{uuid}.txt and returns the path.
+
+### Code & Search Tools
+9. **find-and-replace**: Find and replace text in files using string or regex patterns
+10. **map**: Generate a tree view of project directory structure
+11. **grep**: Search for regex patterns in files. Supports recursive search, case sensitivity, and file pattern filtering.
+12. **glob**: Find files matching glob patterns (e.g., "src/**/*.ts"). Supports ignore patterns and absolute/relative paths.
+
+### System & Network Tools
+13. **execute-command**: Execute shell commands with options for timeout, working directory, environment variables, and background execution.
+14. **http-request**: Make HTTP requests (GET, POST, PUT, DELETE) with support for headers, data, authentication, proxy, and SSL verification.
+
+## Special Features
+
+### write-file Error Handling
+When write-file encounters an error (file exists, invalid path, etc.), it:
+1. Saves the content to `tmp/{uuid}.txt`
+2. Returns the tmp path in the error message
+3. Logs the error to console for debugging
+
+### read-file Size Protection
+- Default maxChars: 10000 characters
+- Returns truncated content with statistics if limit exceeded
+- Automatically detects and rejects binary files
+- Provides line count and file size information
+
+### delete Auto-Detection
+- Automatically detects if path is file or directory
+- Returns clear error message if user tries to delete file as directory or vice versa
+- Supports recursive deletion for directories
 
 ## Build Configuration
 
