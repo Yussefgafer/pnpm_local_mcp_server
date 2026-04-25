@@ -2,15 +2,11 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
-
-import * as os from 'os';
-
-// Get username
-export const username: string = os.userInfo().username;
+import { getDefaultPath, formatFileSize } from '../utils';
 
 /**
- * Tool 2: Get file list
- * Registers the tool to the MCP server
+ * Tool: List Files
+ * Lists files and directories with detailed metadata.
  * @param server MCP server instance
  */
 const registerTool = (server: McpServer) => {
@@ -19,24 +15,39 @@ const registerTool = (server: McpServer) => {
     {
       title: 'List Files',
       description:
-        'Get all file names in the specified directory. Parameters: folderPath (optional) - directory path, defaults to desktop; includeHidden (optional) - include hidden files, defaults to false',
+        'Lists all files and directories in the specified path with detailed information (type, size, modified date). Defaults to Desktop if no path provided.',
       inputSchema: {
-        folderPath: z.string().optional(),
-        includeHidden: z.boolean().optional()
+        folderPath: z.string().optional().describe('Directory path to list. Defaults to Desktop.'),
+        includeHidden: z.boolean().optional().default(false).describe('Include hidden files starting with . (default: false).'),
+        sortBy: z.enum(['name', 'size', 'modified']).optional().default('name').describe('Sort by: name, size, or modified (default: name).'),
       }
     },
-    async ({ folderPath, includeHidden = false }) => {
+    async ({ folderPath, includeHidden = false, sortBy = 'name' }) => {
       try {
-        // Default to desktop path
-        const targetPath = folderPath || `/Users/${username}/Desktop`;
+        // Use cross-platform default path
+        const targetPath = folderPath || getDefaultPath();
 
         // Check if path exists
         if (!(await fs.pathExists(targetPath))) {
           return {
             content: [
               {
-                type: 'text',
-                text: `Error: Path ${targetPath} does not exist`
+                type: 'text' as const,
+                text: `❌ **Error**: Path does not exist: \`${targetPath}\``
+              }
+            ],
+            isError: true
+          };
+        }
+
+        // Check if it's a directory
+        const targetStats = await fs.stat(targetPath);
+        if (!targetStats.isDirectory()) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `❌ **Error**: Path is not a directory: \`${targetPath}\``
               }
             ],
             isError: true
@@ -55,37 +66,80 @@ const registerTool = (server: McpServer) => {
         const fileDetails = await Promise.all(
           filteredItems.map(async (item) => {
             const itemPath = path.join(targetPath, item);
-            const stats = await fs.stat(itemPath);
-            return {
-              name: item,
-              type: stats.isDirectory() ? 'Directory' : 'File',
-              size: stats.isFile() ? `${Math.round(stats.size / 1024)}KB` : '-'
-            };
+            try {
+              const stats = await fs.stat(itemPath);
+              return {
+                name: item,
+                isDirectory: stats.isDirectory(),
+                size: stats.size,
+                modified: stats.mtime,
+              };
+            } catch {
+              // Skip items we can't stat
+              return null;
+            }
           })
         );
 
-        const resultText =
-          fileDetails.length > 0
-            ? `Contents of directory ${targetPath}:\n` +
-              fileDetails
-                .map((item) => `- ${item.name} (${item.type}, ${item.size})`)
-                .join('\n')
-            : `Directory ${targetPath} is empty`;
+        // Remove nulls and sort
+        const validItems = fileDetails.filter((item): item is NonNullable<typeof item> => item !== null);
+
+        validItems.sort((a, b) => {
+          if (sortBy === 'name') {
+            // Directories first, then by name
+            if (a.isDirectory !== b.isDirectory) {
+              return a.isDirectory ? -1 : 1;
+            }
+            return a.name.localeCompare(b.name);
+          } else if (sortBy === 'size') {
+            return b.size - a.size;
+          } else if (sortBy === 'modified') {
+            return b.modified.getTime() - a.modified.getTime();
+          }
+          return 0;
+        });
+
+        // Format output
+        if (validItems.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `📁 **${targetPath}**\n\n*Directory is empty*`
+              }
+            ]
+          };
+        }
+
+        let result = `📁 **${targetPath}**\n\n`;
+        result += `| Name | Type | Size | Modified |\n`;
+        result += `|------|------|------|----------|\\n`;
+
+        for (const item of validItems) {
+          const icon = item.isDirectory ? '📂' : '📄';
+          const type = item.isDirectory ? 'Directory' : 'File';
+          const size = item.isDirectory ? '-' : formatFileSize(item.size);
+          const date = item.modified.toISOString().split('T')[0];
+          result += `| ${icon} ${item.name} | ${type} | ${size} | ${date} |\n`;
+        }
+
+        result += `\n**Total**: ${validItems.length} items (${validItems.filter(i => i.isDirectory).length} directories, ${validItems.filter(i => !i.isDirectory).length} files)`;
 
         return {
           content: [
             {
-              type: 'text',
-              text: resultText
+              type: 'text' as const,
+              text: result
             }
           ]
         };
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
-              type: 'text',
-              text: `Error getting file list: ${error instanceof Error ? error.message : String(error)}`
+              type: 'text' as const,
+              text: `❌ **Error listing files**: ${errorMessage}`
             }
           ],
           isError: true

@@ -1,14 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-
-import * as os from 'os';
 import express from 'express';
 
-import registryTools from './tools';
-
-// Get username
-export const username: string = os.userInfo().username;
+import registerTools, { initializeTools } from './tools';
 
 // Create MCP server
 const server = new McpServer({
@@ -16,12 +10,14 @@ const server = new McpServer({
   version: '1.0.0'
 });
 
-// Register tools
-registryTools(server);
-
 // Start
 async function main() {
   try {
+    // Initialize tools (tmp directory setup, cleanup)
+    await initializeTools();
+    // Register tools
+    registerTools(server);
+
     // SSE server
     const app = express();
     app.use(express.json());
@@ -88,9 +84,9 @@ async function main() {
 
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
-      console.log(`MCP file operation server started on port ${PORT}`);
-      console.log(`SSE endpoint: http://localhost:${PORT}/sse`);
-      console.log(`Health check: http://localhost:${PORT}/health`);
+      console.log(`✅ MCP file operation server started on port ${PORT}`);
+      console.log(`📡 SSE endpoint: http://localhost:${PORT}/sse`);
+      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
     });
   } catch (error) {
     console.error('Error starting server:', error);

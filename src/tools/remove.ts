@@ -2,22 +2,23 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
+import { formatFileSize } from '../utils';
 
 /**
- * Tool: Delete File or Directory
- * Deletes a file or directory with automatic type detection
+ * Tool: Remove File or Directory
+ * Removes a file or directory with automatic type detection.
  * @param server MCP server instance
  */
 const registerTool = (server: McpServer) => {
   server.registerTool(
-    'delete',
+    'remove',
     {
-      title: 'Delete File or Directory',
+      title: 'Remove File or Directory',
       description:
-        'Deletes a file or directory. The tool automatically detects whether the path is a file or directory. If you try to delete a file but the path is a directory (or vice versa), an error will be returned explaining the mismatch. Use recursive=true for non-empty directories.',
+        'Removes (deletes) a file or directory. Automatically detects the type. Use recursive=true for non-empty directories.',
       inputSchema: {
-        path: z.string().describe('The path of the file or directory to delete.'),
-        recursive: z.boolean().optional().default(true).describe('For directories: whether to delete contents recursively. For files: this parameter is ignored.'),
+        path: z.string().describe('The path of the file or directory to remove.'),
+        recursive: z.boolean().optional().default(true).describe('For directories: delete contents recursively. For files: ignored.'),
       }
     },
     async ({
@@ -30,8 +31,8 @@ const registerTool = (server: McpServer) => {
           return {
             content: [
               {
-                type: 'text',
-                text: `Error: Path does not exist: ${targetPath}`
+                type: 'text' as const,
+                text: `❌ **Error**: Path does not exist: \`${targetPath}\``
               }
             ],
             isError: true
@@ -42,6 +43,7 @@ const registerTool = (server: McpServer) => {
         const stats = await fs.stat(targetPath);
         const isDirectory = stats.isDirectory();
         const isFile = stats.isFile();
+        const size = stats.size;
 
         if (isDirectory) {
           // It's a directory - check recursive flag
@@ -51,8 +53,8 @@ const registerTool = (server: McpServer) => {
               return {
                 content: [
                   {
-                    type: 'text',
-                    text: `Error: Directory ${targetPath} is not empty. Use recursive: true to delete it with all contents.`
+                    type: 'text' as const,
+                    text: `❌ **Error**: Directory is not empty: \`${targetPath}\`\n\nUse \`recursive: true\` to remove it with all contents.`
                   }
                 ],
                 isError: true
@@ -65,8 +67,8 @@ const registerTool = (server: McpServer) => {
           return {
             content: [
               {
-                type: 'text',
-                text: `Successfully deleted directory: ${targetPath}`
+                type: 'text' as const,
+                text: `✅ **Successfully removed directory**: \`${targetPath}\``
               }
             ]
           };
@@ -77,8 +79,8 @@ const registerTool = (server: McpServer) => {
           return {
             content: [
               {
-                type: 'text',
-                text: `Successfully deleted file: ${targetPath}`
+                type: 'text' as const,
+                text: `✅ **Successfully removed file**: \`${targetPath}\` (${formatFileSize(size)})`
               }
             ]
           };
@@ -87,19 +89,20 @@ const registerTool = (server: McpServer) => {
           return {
             content: [
               {
-                type: 'text',
-                text: `Error: Path ${targetPath} is neither a file nor a directory (may be a symlink or special file).`
+                type: 'text' as const,
+                text: `❌ **Error**: Path is neither a file nor a directory: \`${targetPath}\`\n\nMay be a symlink or special file.`
               }
             ],
             isError: true
           };
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
-              type: 'text',
-              text: `Error deleting path: ${error instanceof Error ? error.message : String(error)}`
+              type: 'text' as const,
+              text: `❌ **Error removing path**: ${errorMessage}`
             }
           ],
           isError: true

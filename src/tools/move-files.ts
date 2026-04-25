@@ -2,34 +2,41 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
+import {
+  calculateDirectorySize,
+  countFilesInDirectory,
+  formatFileSize,
+  checkWritePermission,
+  getDirectoryStats
+} from '../utils';
 
 /**
  * Tool: Move Files or Directories
- * Registers the tool to the MCP server
+ * Uses utils for directory operations and formatting.
  * @param server MCP server instance
  */
 const registerTool = (server: McpServer) => {
   server.registerTool(
     'move-files',
     {
-      title: 'Move Files',
+      title: 'Move Files or Directories',
       description:
-        'Move files or directories to a target location. Parameters: sourcePath - source file/directory path (required); targetPath - target path (required); overwrite - whether to overwrite existing files (optional, default false)',
+        'Moves files or directories to a target location. Supports overwrite mode. Uses atomic operations when possible.',
       inputSchema: {
-        sourcePath: z.string(),
-        targetPath: z.string(),
-        overwrite: z.boolean().optional()
+        sourcePath: z.string().describe('Source file or directory path (required).'),
+        targetPath: z.string().describe('Target path (required).'),
+        overwrite: z.boolean().optional().default(false).describe('Whether to overwrite existing target (default: false).'),
       }
     },
     async ({ sourcePath, targetPath, overwrite = false }) => {
       try {
-        // Check if source file exists
+        // Check if source exists
         if (!(await fs.pathExists(sourcePath))) {
           return {
             content: [
               {
-                type: 'text',
-                text: `Error: Source file or directory ${sourcePath} does not exist`
+                type: 'text' as const,
+                text: `❌ **Error**: Source does not exist: \`${sourcePath}\``
               }
             ],
             isError: true
@@ -43,8 +50,22 @@ const registerTool = (server: McpServer) => {
           return {
             content: [
               {
-                type: 'text',
-                text: 'Error: Source and target paths cannot be the same'
+                type: 'text' as const,
+                text: '❌ **Error**: Source and target paths cannot be the same'
+              }
+            ],
+            isError: true
+          };
+        }
+
+        // Check target write permissions
+        const targetDir = path.dirname(targetPath);
+        if (!(await checkWritePermission(targetDir))) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `❌ **Error**: Insufficient permissions to write to: \`${targetDir}\``
               }
             ],
             isError: true
@@ -57,76 +78,63 @@ const registerTool = (server: McpServer) => {
           return {
             content: [
               {
-                type: 'text',
-                text: `Error: Target path ${targetPath} already exists, set overwrite=true to overwrite`
+                type: 'text' as const,
+                text: `❌ **Error**: Target already exists: \`${targetPath}\`\n\nUse \`overwrite: true\` to replace it.`
               }
             ],
             isError: true
           };
         }
 
-        // Get source file information (before move)
+        // Get source stats
         const sourceStats = await fs.stat(sourcePath);
         const isDirectory = sourceStats.isDirectory();
-        const sourceSize = isDirectory
-          ? await calculateDirectorySize(sourcePath)
-          : sourceStats.size;
 
-        // Count files (if directory)
-        let fileCount = 1;
+        // Get comprehensive stats using utils
+        let itemCount = 1;
+        let sourceSize = sourceStats.size;
+
         if (isDirectory) {
-          fileCount = await countFilesInDirectory(sourcePath);
+          const dirStats = await getDirectoryStats(sourcePath, {
+            maxDepth: Infinity,
+            ignore: ['node_modules', '.git', 'dist']
+          });
+          sourceSize = dirStats.totalSize;
+          itemCount = dirStats.fileCount;
         }
 
         // Ensure target directory exists
-        const targetDir = isDirectory
-          ? path.dirname(targetPath)
-          : path.dirname(targetPath);
         await fs.ensureDir(targetDir);
 
         // Execute move operation
-        await fs.move(sourcePath, targetPath, { overwrite: overwrite });
+        await fs.move(sourcePath, targetPath, { overwrite });
 
-        // Verify move was successful
-        if (!(await fs.pathExists(targetPath))) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'Error: Move operation completed but target file not found'
-              }
-            ],
-            isError: true
-          };
+        // Build success message
+        let result = `✅ **Move Completed**\n\n`;
+        result += `**Source**: \`${sourcePath}\`\n`;
+        result += `**Target**: \`${targetPath}\`\n`;
+        result += `**Type**: ${isDirectory ? 'Directory' : 'File'}\n`;
+        result += `**Size**: ${formatFileSize(sourceSize)}\n`;
+        if (isDirectory) {
+          result += `**Files**: ${itemCount}\n`;
         }
-
-        // Verify source file was removed
-        if (await fs.pathExists(sourcePath)) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'Warning: Move operation completed but source file still exists'
-              }
-            ],
-            isError: true
-          };
-        }
+        result += `**Mode**: ${targetExists && overwrite ? 'Overwrite' : 'New'}`;
 
         return {
           content: [
             {
-              type: 'text',
-              text: `Move completed!\nSource: ${sourcePath}\nTarget: ${targetPath}\nType: ${isDirectory ? 'Directory' : 'File'}\nSize: ${Math.round(sourceSize / 1024)}KB\n${isDirectory ? `Files included: ${fileCount}` : ''}\nOperation: ${targetExists && overwrite ? 'Overwrite move' : 'New move'}`
+              type: 'text' as const,
+              text: result
             }
           ]
         };
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
-              type: 'text',
-              text: `Error moving file: ${error instanceof Error ? error.message : String(error)}`
+              type: 'text' as const,
+              text: `❌ **Error moving file**: ${errorMessage}`
             }
           ],
           isError: true
@@ -135,57 +143,5 @@ const registerTool = (server: McpServer) => {
     }
   );
 };
-
-/**
- * Calculate directory size
- */
-async function calculateDirectorySize(dirPath: string): Promise<number> {
-  let totalSize = 0;
-
-  const calculateSize = async (itemPath: string): Promise<void> => {
-    try {
-      const stats = await fs.stat(itemPath);
-      if (stats.isDirectory()) {
-        const items = await fs.readdir(itemPath);
-        for (const item of items) {
-          await calculateSize(path.join(itemPath, item));
-        }
-      } else {
-        totalSize += stats.size;
-      }
-    } catch {
-      // Ignore inaccessible files
-    }
-  };
-
-  await calculateSize(dirPath);
-  return totalSize;
-}
-
-/**
- * Count files in directory
- */
-async function countFilesInDirectory(dirPath: string): Promise<number> {
-  let fileCount = 0;
-
-  const countFiles = async (itemPath: string): Promise<void> => {
-    try {
-      const stats = await fs.stat(itemPath);
-      if (stats.isDirectory()) {
-        const items = await fs.readdir(itemPath);
-        for (const item of items) {
-          await countFiles(path.join(itemPath, item));
-        }
-      } else {
-        fileCount++;
-      }
-    } catch {
-      // Ignore inaccessible files
-    }
-  };
-
-  await countFiles(dirPath);
-  return fileCount;
-}
 
 export default registerTool;

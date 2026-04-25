@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
+import { getFileMetadata } from '../utils';
 
 interface GrepResult {
   file: string;
@@ -12,6 +13,7 @@ interface GrepResult {
 
 /**
  * Searches for pattern in a single file
+ * Automatically skips binary files detected via getFileMetadata
  */
 async function searchInFile(
   filePath: string,
@@ -21,6 +23,12 @@ async function searchInFile(
   const results: GrepResult[] = [];
 
   try {
+    // Check if file is binary before reading
+    const metadata = await getFileMetadata(filePath);
+    if (metadata.isBinary) {
+      return []; // Skip binary files silently
+    }
+
     const content = await fs.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
 
@@ -53,6 +61,7 @@ async function searchInFile(
 
 /**
  * Recursively searches for pattern in directory
+ * Automatically skips binary files and respects ignore patterns
  */
 async function searchInDirectory(
   dirPath: string,
@@ -65,6 +74,9 @@ async function searchInDirectory(
     return currentResults;
   }
 
+  // Default ignore patterns
+  const ignorePatterns = ['node_modules', '.git', 'dist', '.svn', '.hg'];
+
   try {
     const items = await fs.readdir(dirPath);
     const fileRegex = new RegExp(filePattern.replace(/\*/g, '.*').replace(/\?/g, '.'));
@@ -74,6 +86,11 @@ async function searchInDirectory(
         break;
       }
 
+      // Skip ignored directories/files
+      if (ignorePatterns.includes(item)) {
+        continue;
+      }
+
       const itemPath = path.join(dirPath, item);
       const stats = await fs.stat(itemPath);
 
@@ -81,7 +98,7 @@ async function searchInDirectory(
         // Recurse into subdirectories
         await searchInDirectory(itemPath, pattern, filePattern, maxResults, currentResults);
       } else if (stats.isFile() && fileRegex.test(item)) {
-        // Search in file
+        // Search in file (binary detection happens in searchInFile)
         const fileResults = await searchInFile(itemPath, pattern, maxResults - currentResults.length);
         currentResults.push(...fileResults);
       }
@@ -203,32 +220,33 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `No matches found for pattern "${pattern}" in ${targetPath}`
+                text: `ℹ️ **No matches found** for pattern \`${pattern}\` in \`${targetPath}\`\n\nNote: Binary files (images, PDFs, executables) are automatically skipped.`
               }
             ]
           };
         }
 
         const formattedResults = results.map(r =>
-          `${r.file}:${r.line}: ${r.content}`
+          `\`${r.file}:${r.line}\`: ${r.content.substring(0, 150)}${r.content.length > 150 ? '...' : ''}`
         ).join('\n');
 
-        const truncated = results.length >= maxResults ? '\n[Results truncated - max limit reached]' : '';
+        const truncated = results.length >= maxResults ? '\n\n⚠️ **Results truncated** - max limit reached' : '';
 
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Found ${results.length} match(es) for "${pattern}":\n\n${formattedResults}${truncated}`
+              text: `🔍 **Found ${results.length} match(es)** for \`${pattern}\`:\n\n${formattedResults}${truncated}`
             }
           ]
         };
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Error during search: ${error.message}`
+              text: `❌ **Error during search**: ${errorMessage}`
             }
           ],
           isError: true

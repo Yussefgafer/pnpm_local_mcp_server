@@ -2,24 +2,29 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
+import {
+  formatFileSize,
+  checkWritePermission,
+  getDirectoryStats
+} from '../utils';
 
 /**
  * Tool: Copy Files or Directories
- * Registers the tool to the MCP server
+ * Uses utils for directory operations and formatting.
  * @param server MCP server instance
  */
 const registerTool = (server: McpServer) => {
   server.registerTool(
     'copy-files',
     {
-      title: 'Copy Files',
+      title: 'Copy Files or Directories',
       description:
-        'Copy files or directories to a target location. Parameters: sourcePath - source file/directory path (required); targetPath - target path (required); overwrite - whether to overwrite existing files (optional, default false); preserveTimestamps - whether to preserve timestamps (optional, default true)',
+        'Copies files or directories to a target location. Supports overwrite mode and timestamp preservation.',
       inputSchema: {
-        sourcePath: z.string(),
-        targetPath: z.string(),
-        overwrite: z.boolean().optional(),
-        preserveTimestamps: z.boolean().optional()
+        sourcePath: z.string().describe('Source file or directory path (required).'),
+        targetPath: z.string().describe('Target path (required).'),
+        overwrite: z.boolean().optional().default(false).describe('Whether to overwrite existing target (default: false).'),
+        preserveTimestamps: z.boolean().optional().default(true).describe('Preserve original timestamps (default: true).'),
       }
     },
     async ({
@@ -29,13 +34,27 @@ const registerTool = (server: McpServer) => {
       preserveTimestamps = true
     }) => {
       try {
-        // Check if source file exists
+        // Check if source exists
         if (!(await fs.pathExists(sourcePath))) {
           return {
             content: [
               {
-                type: 'text',
-                text: `Error: Source file or directory ${sourcePath} does not exist`
+                type: 'text' as const,
+                text: `❌ **Error**: Source does not exist: \`${sourcePath}\``
+              }
+            ],
+            isError: true
+          };
+        }
+
+        // Check target write permissions
+        const targetDir = path.dirname(targetPath);
+        if (!(await checkWritePermission(targetDir))) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `❌ **Error**: Insufficient permissions to write to: \`${targetDir}\``
               }
             ],
             isError: true
@@ -48,69 +67,67 @@ const registerTool = (server: McpServer) => {
           return {
             content: [
               {
-                type: 'text',
-                text: `Error: Target path ${targetPath} already exists, set overwrite=true to overwrite`
+                type: 'text' as const,
+                text: `❌ **Error**: Target already exists: \`${targetPath}\`\n\nUse \`overwrite: true\` to replace it.`
               }
             ],
             isError: true
           };
         }
 
-        // Get source file information
+        // Get source stats
         const sourceStats = await fs.stat(sourcePath);
         const isDirectory = sourceStats.isDirectory();
-        const sourceSize = isDirectory
-          ? await calculateDirectorySize(sourcePath)
-          : sourceStats.size;
+
+        // Get comprehensive stats using utils
+        let itemCount = 1;
+        let sourceSize = sourceStats.size;
+
+        if (isDirectory) {
+          const dirStats = await getDirectoryStats(sourcePath, {
+            maxDepth: Infinity,
+            ignore: ['node_modules', '.git', 'dist']
+          });
+          sourceSize = dirStats.totalSize;
+          itemCount = dirStats.fileCount;
+        }
 
         // Ensure target directory exists
-        const targetDir = isDirectory ? targetPath : path.dirname(targetPath);
         await fs.ensureDir(targetDir);
 
         // Execute copy operation
-        const copyOptions: any = {
-          overwrite: overwrite,
-          preserveTimestamps: preserveTimestamps
-        };
+        await fs.copy(sourcePath, targetPath, {
+          overwrite,
+          preserveTimestamps,
+        });
 
-        await fs.copy(sourcePath, targetPath, copyOptions);
-
-        // Verify copy was successful
-        if (!(await fs.pathExists(targetPath))) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'Error: Copy operation completed but target file not found'
-              }
-            ],
-            isError: true
-          };
-        }
-
-        // Verify copied file
-        await fs.stat(targetPath);
-
-        // Count files (if directory)
-        let fileCount = 1;
+        // Build success message
+        let result = `✅ **Copy Completed**\n\n`;
+        result += `**Source**: \`${sourcePath}\`\n`;
+        result += `**Target**: \`${targetPath}\`\n`;
+        result += `**Type**: ${isDirectory ? 'Directory' : 'File'}\n`;
+        result += `**Size**: ${formatFileSize(sourceSize)}\n`;
         if (isDirectory) {
-          fileCount = await countFilesInDirectory(targetPath);
+          result += `**Files**: ${itemCount}\n`;
         }
+        result += `**Timestamps**: ${preserveTimestamps ? 'Preserved' : 'Updated'}\n`;
+        result += `**Mode**: ${targetExists && overwrite ? 'Overwrite' : 'New'}`;
 
         return {
           content: [
             {
-              type: 'text',
-              text: `Copy completed!\nSource: ${sourcePath}\nTarget: ${targetPath}\nType: ${isDirectory ? 'Directory' : 'File'}\nSize: ${Math.round(sourceSize / 1024)}KB\n${isDirectory ? `Files included: ${fileCount}` : ''}\nPreserve timestamps: ${preserveTimestamps ? 'Yes' : 'No'}`
+              type: 'text' as const,
+              text: result
             }
           ]
         };
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
-              type: 'text',
-              text: `Error copying file: ${error instanceof Error ? error.message : String(error)}`
+              type: 'text' as const,
+              text: `❌ **Error copying file**: ${errorMessage}`
             }
           ],
           isError: true
@@ -119,49 +136,5 @@ const registerTool = (server: McpServer) => {
     }
   );
 };
-
-/**
- * Calculate directory size
- */
-async function calculateDirectorySize(dirPath: string): Promise<number> {
-  let totalSize = 0;
-
-  const calculateSize = async (itemPath: string): Promise<void> => {
-    const stats = await fs.stat(itemPath);
-    if (stats.isDirectory()) {
-      const items = await fs.readdir(itemPath);
-      for (const item of items) {
-        await calculateSize(path.join(itemPath, item));
-      }
-    } else {
-      totalSize += stats.size;
-    }
-  };
-
-  await calculateSize(dirPath);
-  return totalSize;
-}
-
-/**
- * Count files in directory
- */
-async function countFilesInDirectory(dirPath: string): Promise<number> {
-  let fileCount = 0;
-
-  const countFiles = async (itemPath: string): Promise<void> => {
-    const stats = await fs.stat(itemPath);
-    if (stats.isDirectory()) {
-      const items = await fs.readdir(itemPath);
-      for (const item of items) {
-        await countFiles(path.join(itemPath, item));
-      }
-    } else {
-      fileCount++;
-    }
-  };
-
-  await countFiles(dirPath);
-  return fileCount;
-}
 
 export default registerTool;
