@@ -8,7 +8,7 @@
 **License:** MIT  
 **Author:** lxKylin  
 **Repository:** https://github.com/lxKylin/file-operation-mcp  
-**Description:** A comprehensive file operation server based on Model Context Protocol (MCP), providing 14 powerful tools for file management, code search, HTTP requests, and command execution.
+**Description:** A comprehensive file operation server based on Model Context Protocol (MCP), providing 14 powerful tools for file management, code search, HTTP requests, and command execution. Features high-quality utilities with cross-platform support, automatic binary detection, and safe error handling with tmp storage.
 
 ## Project Structure
 
@@ -17,24 +17,28 @@
 ├── src/
 │   ├── index.ts              # Main server entry point
 │   ├── tools/                # MCP tools implementation
-│   │   ├── index.ts          # Tools registry
-│   │   ├── count-files.ts    # File counting tool
-│   │   ├── list-files.ts     # File listing tool
-│   │   ├── copy-files.ts     # File copy tool
-│   │   ├── move-files.ts     # File move tool
-│   │   ├── delete.ts         # Delete file/directory (auto-detect)
+│   │   ├── index.ts          # Tools registry with initializeTools()
+│   │   ├── count-files.ts    # Comprehensive directory statistics
+│   │   ├── list-files.ts     # File listing with table output
+│   │   ├── copy-files.ts     # Copy files/directories with utils
+│   │   ├── move-files.ts     # Move files/directories with utils
+│   │   ├── remove.ts         # Remove file/directory (auto-detect)
 │   │   ├── create-item.ts    # Create file/directory
-│   │   ├── read-file.ts      # Read file with size protection
-│   │   ├── write-file.ts     # Write file (saves to tmp on errors)
+│   │   ├── read-file.ts      # Read with binary detection (8KB sample)
+│   │   ├── write-file.ts     # Write with tmp storage on errors
 │   │   ├── execute-command.ts # Execute shell commands
 │   │   ├── find-and-replace.ts # Find and replace in files
-│   │   ├── map.ts            # Generate project tree map
+│   │   ├── tree.ts           # Directory tree visualization
 │   │   ├── http-request.ts   # HTTP requests (GET/POST/PUT/DELETE)
-│   │   ├── grep.ts           # Search with regex in files
-│   │   └── glob.ts           # Find files by glob pattern
-│   └── utils/                # Utility functions
-│       └── timeout.ts        # Timeout utilities
-├── tmp/                      # Temporary files storage
+│   │   ├── grep.ts           # Regex search with binary skip
+│   │   └── glob.ts           # Fast glob pattern matching
+│   └── utils/                # Shared utilities
+│       ├── index.ts          # Barrel exports
+│       ├── formatters.ts     # File size, timestamps, base64
+│       ├── platform.ts       # Cross-platform paths
+│       ├── file-operations.ts # Metadata, binary detection, tmp
+│       └── directory-utils.ts # Directory stats, size calculation
+├── tmp/                      # Temporary files storage (auto-cleanup)
 ├── dist/                     # Built distribution files
 ├── package.json              # Project dependencies and scripts
 ├── tsconfig.json            # TypeScript configuration
@@ -56,6 +60,7 @@
 - **zod** (v3.25.76): TypeScript-first schema validation
 - **fs-extra** (v11.3.0): Enhanced file system operations
 - **axios** (v1.11.0): HTTP client for API requests
+- **fast-glob** (v3.x): High-performance glob pattern matching
 
 ### Development Dependencies
 - **@rslib/core** (v0.10.5): Build tool for libraries
@@ -76,16 +81,16 @@ The server provides 14 MCP tools for file operations:
 2. **list-files**: Detailed file list with names, types, and sizes
 3. **copy-files**: Copy files/folders while preserving timestamps
 4. **move-files**: Move files/folders (cut operation)
-5. **delete**: Delete file or directory with automatic type detection. Returns helpful error if type mismatch.
+5. **remove**: Remove file or directory with automatic type detection. Uses 'remove' naming (safer than 'delete').
 6. **create-item**: Create file or directory. Specify type="file" or type="directory". Supports optional initial content for files.
-7. **read-file**: Read text file content with maxChars limit (default 10000). Returns statistics if truncated. Rejects binary files.
-8. **write-file**: Write to new file only (fails if exists). On any error, saves content to tmp/{uuid}.txt and returns the path.
+7. **read-file**: Read text file with maxChars limit (10000). Uses 8KB sample for binary detection. Returns statistics in Markdown format.
+8. **write-file**: Write to new file only. On any error, saves content to tmp/ with timestamp+UUID filename and returns the path.
 
 ### Code & Search Tools
 9. **find-and-replace**: Find and replace text in files using string or regex patterns
-10. **map**: Generate a tree view of project directory structure
-11. **grep**: Search for regex patterns in files. Supports recursive search, case sensitivity, and file pattern filtering.
-12. **glob**: Find files matching glob patterns (e.g., "src/**/*.ts"). Supports ignore patterns and absolute/relative paths.
+10. **tree**: Generate a directory tree view (like Unix `tree` command). Supports maxDepth and ignore patterns.
+11. **grep**: Search for regex patterns in files. Auto-skips binary files (images, PDFs). Supports recursive search and file filtering.
+12. **glob**: Find files using fast-glob. Supports multiple patterns, ignore lists, and brace expansion (e.g., "*.{js,ts}").
 
 ### System & Network Tools
 13. **execute-command**: Execute shell commands with options for timeout, working directory, environment variables, and background execution.
@@ -93,22 +98,48 @@ The server provides 14 MCP tools for file operations:
 
 ## Special Features
 
-### write-file Error Handling
+### write-file Error Handling with Tmp Storage
 When write-file encounters an error (file exists, invalid path, etc.), it:
-1. Saves the content to `tmp/{uuid}.txt`
-2. Returns the tmp path in the error message
-3. Logs the error to console for debugging
+1. Saves the content to `tmp/{timestamp}-{uuid}.txt` (or `.bin` for Buffer)
+2. Binary content is base64-encoded for safe storage
+3. Returns the tmp path in the error message
+4. Auto-cleanup keeps only last 200 tmp files (FIFO)
 
-### read-file Size Protection
-- Default maxChars: 10000 characters
-- Returns truncated content with statistics if limit exceeded
-- Automatically detects and rejects binary files
-- Provides line count and file size information
+### read-file Binary Detection
+- Detects binary files using 8KB sample (null byte detection)
+- Efficient partial read - doesn't read entire file
+- Rejects binary files with clear error message
+- Returns statistics in Markdown format with emoji indicators
 
-### delete Auto-Detection
+### count-files Comprehensive Statistics
+- Returns file count, directory count, total size
+- Breakdown by file extension (top 15)
+- Maximum depth calculation
+- Uses single-pass traversal for performance
+
+### glob with fast-glob
+- High-performance pattern matching
+- Supports brace expansion: `*.{js,ts}`
+- Multiple patterns as array
+- Respects ignore patterns (node_modules, .git)
+
+### grep Binary File Skipping
+- Automatically skips binary files (detected via getFileMetadata)
+- Respects ignore patterns for directories
+- Line length limit (150 chars) in output
+- Clear indicator when results are truncated
+
+### remove Auto-Detection
 - Automatically detects if path is file or directory
-- Returns clear error message if user tries to delete file as directory or vice versa
-- Supports recursive deletion for directories
+- Uses 'remove' naming (clearer than 'delete')
+- Supports recursive removal for directories
+- Permission checks before operation
+
+### Cross-Platform Path Support
+- Works on Linux, macOS, and Windows
+- getDefaultPath() returns appropriate Desktop path per platform
+- Cached username and home directory
+- Normalized path handling
 
 ## Build Configuration
 
@@ -176,10 +207,30 @@ When write-file encounters an error (file exists, invalid path, etc.), it:
 - Safe operations with confirmation prompts
 - Protection against common file operation vulnerabilities
 
+## Utils Architecture
+
+### Shared Utilities (src/utils/)
+The project uses a comprehensive utility layer to ensure consistency:
+
+- **formatters.ts**: formatFileSize (metric units), countLines, formatTimestamp, truncate
+- **platform.ts**: Cross-platform paths, username caching, getDefaultPath()
+- **file-operations.ts**: FileMetadata interface, binary detection (8KB sample), tmp operations
+- **directory-utils.ts**: Single-pass directory stats, size calculation, file counting
+- **index.ts**: Hybrid barrel exports (values + export type for isolatedModules)
+
+### Tmp Management
+- TMP_DIR: `tmp/` in project root
+- Filename format: `{timestamp}-{uuid}.{ext}`
+- Cleanup strategy: FIFO with max 200 files
+- Auto-cleanup on startup and after each save
+
 ## Performance Characteristics
 
 - Moderate latency for SSE transport (~10-50ms)
 - Memory-efficient streaming for large files
+- Binary detection: 8KB sample only (not entire file)
+- Directory stats: Single-pass traversal
+- Glob: Uses fast-glob (optimized native implementation)
 
 ## Development Notes
 
