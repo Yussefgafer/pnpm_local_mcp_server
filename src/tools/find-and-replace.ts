@@ -3,12 +3,68 @@ import { z } from 'zod';
 import fs from 'fs-extra';
 import { validatePath, getFileMetadata } from '../utils';
 
+interface Change {
+  lineNumber: number;
+  oldLine: string;
+  newLine: string;
+}
+
+/**
+ * Find all changed lines between old and new content
+ */
+function findChanges(oldLines: string[], newLines: string[]): Change[] {
+  const changes: Change[] = [];
+  const maxLines = Math.max(oldLines.length, newLines.length);
+
+  for (let i = 0; i < maxLines; i++) {
+    const oldLine = oldLines[i] ?? '';
+    const newLine = newLines[i] ?? '';
+
+    if (oldLine !== newLine) {
+      changes.push({
+        lineNumber: i + 1, // 1-based line numbers
+        oldLine,
+        newLine,
+      });
+    }
+  }
+
+  return changes;
+}
+
+/**
+ * Format changes as a git-style diff
+ */
+function formatDiff(path: string, changes: Change[], search: string, replace: string): string {
+  if (changes.length === 0) {
+    return '**No changes**: The search term was not found in the file.';
+  }
+
+  let result = `**Changes in \`${path}\`**\n\n`;
+  result += `**Summary**: ${changes.length} line(s) modified\n\n`;
+  result += '```diff\n';
+
+  for (const change of changes) {
+    // Show context: old line with -
+    result += `- ${change.oldLine}\n`;
+    // Show new line with +
+    result += `+ ${change.newLine}\n`;
+    // Add line number indicator
+    result += `  (Line ${change.lineNumber})\n`;
+  }
+
+  result += '```\n\n';
+  result += `**Replaced**: \`${search}\` → \`${replace}\``;
+
+  return result;
+}
+
 export default function findAndReplace(server: McpServer) {
   server.registerTool(
     'find-and-replace',
     {
       title: 'Find and Replace in File',
-      description: 'Finds and replaces text in a file using a string or a regular expression.',
+      description: 'Finds and replaces text in a file using a string or a regular expression. Returns a diff showing changed lines with line numbers.',
       inputSchema: {
         path: z.string().describe('The path to the file to modify.'),
         search: z.string().describe('The text or regex pattern to search for.'),
@@ -36,6 +92,7 @@ export default function findAndReplace(server: McpServer) {
         }
 
         const fileContent = await fs.readFile(params.path, 'utf-8');
+        const oldLines = fileContent.split('\n');
         let newContent: string;
 
         if (params.isRegex) {
@@ -54,12 +111,18 @@ export default function findAndReplace(server: McpServer) {
           }
         }
 
-        if (newContent === fileContent) {
+        const newLines = newContent.split('\n');
+        const changes = findChanges(oldLines, newLines);
+
+        if (changes.length === 0) {
           return { content: [{ type: 'text', text: '**No changes**: The search term was not found in the file.' }] };
         }
 
         await fs.writeFile(params.path, newContent, 'utf-8');
-        return { content: [{ type: 'text', text: `**Success**: Replaced content in \`${params.path}\`.` }] };
+
+        const diffOutput = formatDiff(params.path, changes, params.search, params.replace);
+
+        return { content: [{ type: 'text', text: diffOutput }] };
 
       } catch (error: any) {
         return {
