@@ -168,7 +168,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: 'Error: pattern is required'
+                text: '**Error**: pattern is required'
               }
             ],
             isError: true

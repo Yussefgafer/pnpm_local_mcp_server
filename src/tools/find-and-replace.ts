@@ -43,7 +43,7 @@ export default function findAndReplace(server: McpServer) {
           try {
             regex = new RegExp(params.search, params.replaceAll ? 'g' : '');
           } catch (e: any) {
-            return { content: [{ type: 'text', text: `Error: Invalid regex pattern: ${e.message}` }], isError: true };
+            return { content: [{ type: 'text', text: `**Error**: Invalid regex pattern: ${e.message}` }], isError: true };
           }
           newContent = fileContent.replace(regex, params.replace);
         } else {

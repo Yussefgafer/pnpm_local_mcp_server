@@ -120,7 +120,7 @@ const registerTool = (server: McpServer) => {
             {
               type: 'text' as const,
               text: isTruncated
-                ? `${content}\n\n---\n**File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}\n- **Showing**: First ${maxChars} characters\n- **Truncated**: ${metadata.size > maxBytesToRead ? 'Yes (file partially read)' : `${content.length - maxChars} characters`}`
+                ? `${content}\n\n---\n**File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}\n- **Showing**: First ${maxChars} characters\n- **Truncated**: Yes (${totalChars} of ${metadata.size} bytes read)`
                 : `${content}\n\n---\n**File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}`
             }
           ]
