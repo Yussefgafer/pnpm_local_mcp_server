@@ -52,7 +52,7 @@ async function searchInFile(
       // Reset regex lastIndex for next line
       pattern.lastIndex = 0;
     }
-  } catch (error) {
+  } catch {
     // Skip files that can't be read
   }
 
@@ -103,7 +103,7 @@ async function searchInDirectory(
         currentResults.push(...fileResults);
       }
     }
-  } catch (error) {
+  } catch {
     // Skip directories that can't be read
   }
 

@@ -1,7 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
-import * as path from 'path';
 import { formatFileSize } from '../utils';
 
 /**

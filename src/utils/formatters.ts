@@ -166,7 +166,7 @@ export function bufferToBase64(buffer: Buffer): string {
 export function base64ToBuffer(base64: string): Buffer {
   try {
     return Buffer.from(base64, 'base64');
-  } catch (error) {
+  } catch {
     throw new Error('Invalid base64 string');
   }
 }

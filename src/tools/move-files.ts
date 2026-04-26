@@ -3,8 +3,6 @@ import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
 import {
-  calculateDirectorySize,
-  countFilesInDirectory,
   formatFileSize,
   checkWritePermission,
   getDirectoryStats

@@ -208,7 +208,7 @@ export async function getFileMetadata(filePath: string): Promise<FileMetadata> {
         await fs.close(fd);
       }
     }
-  } catch (error) {
+  } catch {
     // Path doesn't exist or can't be accessed
     // Return default metadata with exists: false
     metadata.exists = false;
