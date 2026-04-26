@@ -42,7 +42,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: '❌ **Error**: pattern is required'
+                text: '**Error**: pattern is required'
               }
             ],
             isError: true
@@ -64,7 +64,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Directory does not exist: \`${basePath}\``
+                text: `**Error**: Directory does not exist: \`${basePath}\``
               }
             ],
             isError: true
@@ -92,14 +92,14 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `ℹ️ **No files found** matching pattern(s) "${Array.isArray(pattern) ? pattern.join(', ') : pattern}" in \`${basePath}\``
+                text: `**No files found** matching pattern(s) "${Array.isArray(pattern) ? pattern.join(', ') : pattern}" in \`${basePath}\``
               }
             ]
           };
         }
 
         // Format output
-        let output = `📁 **Found ${results.length} file(s)** matching "${Array.isArray(pattern) ? pattern.join(', ') : pattern}":`;
+        let output = `**Found ${results.length} file(s)** matching "${Array.isArray(pattern) ? pattern.join(', ') : pattern}":`;
         if (results.length > maxResults) {
           output += ` (showing first ${maxResults})`;
         }
@@ -120,7 +120,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ **Error during search**: ${errorMessage}`
+              text: `**Error during search**: ${errorMessage}`
             }
           ],
           isError: true

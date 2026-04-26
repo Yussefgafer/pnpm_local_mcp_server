@@ -41,7 +41,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: File does not exist: \`${filePath}\``
+                text: `**Error**: File does not exist: \`${filePath}\``
               }
             ],
             isError: true
@@ -54,7 +54,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Path is not a file: \`${filePath}\`\n\nType: ${metadata.isDirectory ? 'directory' : 'other'}`
+                text: `**Error**: Path is not a file: \`${filePath}\`\n\nType: ${metadata.isDirectory ? 'directory' : 'other'}`
               }
             ],
             isError: true
@@ -67,7 +67,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: File is not readable (permission denied): \`${filePath}\``
+                text: `**Error**: File is not readable (permission denied): \`${filePath}\``
               }
             ],
             isError: true
@@ -80,7 +80,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: File appears to be binary (contains null bytes).\n\n**File**: \`${filePath}\`\n**Size**: ${formatFileSize(metadata.size)}\n\nBinary files (images, PDFs, executables) are not supported for reading as text.`
+                text: `**Error**: File appears to be binary (contains null bytes).\n\n**File**: \`${filePath}\`\n**Size**: ${formatFileSize(metadata.size)}\n\nBinary files (images, PDFs, executables) are not supported for reading as text.`
               }
             ],
             isError: true
@@ -120,8 +120,8 @@ const registerTool = (server: McpServer) => {
             {
               type: 'text' as const,
               text: isTruncated
-                ? `${content}\n\n---\n📊 **File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}\n- **Showing**: First ${maxChars} characters\n- **Truncated**: ${metadata.size > maxBytesToRead ? 'Yes (file partially read)' : `${content.length - maxChars} characters`}`
-                : `${content}\n\n---\n📊 **File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}`
+                ? `${content}\n\n---\n**File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}\n- **Showing**: First ${maxChars} characters\n- **Truncated**: ${metadata.size > maxBytesToRead ? 'Yes (file partially read)' : `${content.length - maxChars} characters`}`
+                : `${content}\n\n---\n**File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}`
             }
           ]
         };
@@ -131,7 +131,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ **Error reading file**: ${errorMessage}`
+              text: `**Error reading file**: ${errorMessage}`
             }
           ],
           isError: true

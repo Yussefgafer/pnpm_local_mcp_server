@@ -88,7 +88,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Path does not exist: \`${targetPath}\``
+                text: `**Error**: Path does not exist: \`${targetPath}\``
               }
             ],
             isError: true
@@ -101,7 +101,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Path is not a directory: \`${targetPath}\``
+                text: `**Error**: Path is not a directory: \`${targetPath}\``
               }
             ],
             isError: true
@@ -111,7 +111,7 @@ const registerTool = (server: McpServer) => {
         const ignoreSet = new Set(ignore);
         const tree = await buildTree(targetPath, '', maxDepth, ignoreSet);
         const depthInfo = maxDepth ? ` (max depth: ${maxDepth})` : '';
-        const map = `📁 **${path.basename(targetPath)}**${depthInfo}\n\n\`\`\`\n${tree || '(empty directory)'}\`\`\``;
+        const map = `**${path.basename(targetPath)}**${depthInfo}\n\n\`\`\`\n${tree || '(empty directory)'}\`\`\``;
 
         return {
           content: [
@@ -127,7 +127,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ **Error generating tree**: ${errorMessage}`
+              text: `**Error generating tree**: ${errorMessage}`
             }
           ],
           isError: true

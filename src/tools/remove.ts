@@ -35,7 +35,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Path does not exist: \`${targetPath}\``
+                text: `**Error**: Path does not exist: \`${targetPath}\``
               }
             ],
             isError: true
@@ -57,7 +57,7 @@ const registerTool = (server: McpServer) => {
                 content: [
                   {
                     type: 'text' as const,
-                    text: `❌ **Error**: Directory is not empty: \`${targetPath}\`\n\nUse \`recursive: true\` to remove it with all contents.`
+                    text: `**Error**: Directory is not empty: \`${targetPath}\`\n\nUse \`recursive: true\` to remove it with all contents.`
                   }
                 ],
                 isError: true
@@ -71,7 +71,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `✅ **Successfully removed directory**: \`${targetPath}\``
+                text: `**Success**: Removed directory: \`${targetPath}\``
               }
             ]
           };
@@ -83,7 +83,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `✅ **Successfully removed file**: \`${targetPath}\` (${formatFileSize(size)})`
+                text: `**Success**: Removed file: \`${targetPath}\` (${formatFileSize(size)})`
               }
             ]
           };
@@ -93,7 +93,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Path is neither a file nor a directory: \`${targetPath}\`\n\nMay be a symlink or special file.`
+                text: `**Error**: Path is neither a file nor a directory: \`${targetPath}\`\n\nMay be a symlink or special file.`
               }
             ],
             isError: true
@@ -105,7 +105,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ **Error removing path**: ${errorMessage}`
+              text: `**Error removing path**: ${errorMessage}`
             }
           ],
           isError: true

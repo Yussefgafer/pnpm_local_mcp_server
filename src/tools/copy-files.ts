@@ -48,7 +48,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Source does not exist: \`${sourcePath}\``
+                text: `**Error**: Source does not exist: \`${sourcePath}\``
               }
             ],
             isError: true
@@ -62,7 +62,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Insufficient permissions to write to: \`${targetDir}\``
+                text: `**Error**: Insufficient permissions to write to: \`${targetDir}\``
               }
             ],
             isError: true
@@ -76,7 +76,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Target already exists: \`${targetPath}\`\n\nUse \`overwrite: true\` to replace it.`
+                text: `**Error**: Target already exists: \`${targetPath}\`\n\nUse \`overwrite: true\` to replace it.`
               }
             ],
             isError: true
@@ -110,7 +110,7 @@ const registerTool = (server: McpServer) => {
         });
 
         // Build success message
-        let result = `✅ **Copy Completed**\n\n`;
+        let result = `**Copy Completed**\n\n`;
         result += `**Source**: \`${sourcePath}\`\n`;
         result += `**Target**: \`${targetPath}\`\n`;
         result += `**Type**: ${isDirectory ? 'Directory' : 'File'}\n`;
@@ -135,7 +135,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ **Error copying file**: ${errorMessage}`
+              text: `**Error copying file**: ${errorMessage}`
             }
           ],
           isError: true

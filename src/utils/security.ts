@@ -65,7 +65,7 @@ export function validatePath(targetPath: string): { content: Array<{ type: 'text
       content: [
         {
           type: 'text' as const,
-          text: `❌ **Security Error**: Access to path \`${targetPath}\` is not allowed. The path is outside the permitted directories.`,
+          text: `**Security Error**: Access to path \`${targetPath}\` is not allowed. The path is outside the permitted directories.`,
         },
       ],
       isError: true,

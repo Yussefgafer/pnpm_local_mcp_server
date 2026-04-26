@@ -63,7 +63,7 @@ const registerExecuteCommandTool = (server: McpServer) => {
         child.unref();
         const pid = child.pid ?? 'unknown';
         return {
-          content: [{ type: 'text', text: `Command "${command}" started in background with PID: ${pid}` }]
+          content: [{ type: 'text', text: `**Command started**: "${command}" in background with PID: ${pid}` }]
         };
       }
 
@@ -95,10 +95,10 @@ const registerExecuteCommandTool = (server: McpServer) => {
               if (stderr) output += `STDERR:\n${stderr}\n`;
             }
             resolve({
-              content: [{ type: 'text', text: output || 'Command executed successfully with no output.' }]
+              content: [{ type: 'text', text: output || '**Success**: Command executed with no output.' }]
             });
           } else {
-            let errorMessage = `Command failed with exit code ${code}\n`;
+            let errorMessage = `**Error**: Command failed with exit code ${code}\n`;
             if (capture_output) {
               if (stdout) errorMessage += `STDOUT:\n${stdout}\n`;
               if (stderr) errorMessage += `STDERR:\n${stderr}\n`;
@@ -112,7 +112,7 @@ const registerExecuteCommandTool = (server: McpServer) => {
 
         child.on('error', (err) => {
           resolve({
-            content: [{ type: 'text', text: `Failed to start command: ${err.message}` }],
+            content: [{ type: 'text', text: `**Error**: Failed to start command: ${err.message}` }],
             isError: true
           });
         });

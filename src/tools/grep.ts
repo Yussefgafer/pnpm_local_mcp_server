@@ -181,7 +181,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `Error: Path does not exist: ${targetPath}`
+                text: `**Error**: Path does not exist: ${targetPath}`
               }
             ],
             isError: true
@@ -198,7 +198,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `Error: Invalid regex pattern: ${e.message}`
+                text: `**Error**: Invalid regex pattern: ${e.message}`
               }
             ],
             isError: true
@@ -228,7 +228,7 @@ const registerTool = (server: McpServer) => {
               fileRegex = new RegExp(escapedPattern);
             } catch (e: any) {
               return {
-                content: [{ type: 'text' as const, text: `Error: Invalid file pattern: ${e.message}` }],
+                content: [{ type: 'text' as const, text: `**Error**: Invalid file pattern: ${e.message}` }],
                 isError: true
               };
             }
@@ -255,23 +255,23 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `ℹ️ **No matches found** for pattern \`${pattern}\` in \`${targetPath}\`\n\nNote: Binary files (images, PDFs, executables) are automatically skipped.`
+                text: `**No matches found** for pattern \`${pattern}\` in \`${targetPath}\`\n\nNote: Binary files (images, PDFs, executables) are automatically skipped.`
               }
             ]
           };
         }
 
         const formattedResults = results.map(r =>
-          `\`${r.file}:${r.line}\`: ${r.content.substring(0, 150)}${r.content.length > 150 ? '...' : ''}`
+          `[${r.file}:${r.line}]: ${r.content.substring(0, 150)}${r.content.length > 150 ? '...' : ''}`
         ).join('\n');
 
-        const truncated = results.length >= maxResults ? '\n\n⚠️ **Results truncated** - max limit reached' : '';
+        const truncated = results.length >= maxResults ? '\n\n**Note**: Results truncated - max limit reached' : '';
 
         return {
           content: [
             {
               type: 'text' as const,
-              text: `🔍 **Found ${results.length} match(es)** for \`${pattern}\`:\n\n${formattedResults}${truncated}`
+              text: `**Found ${results.length} match(es)** for \`${pattern}\`:\n\n${formattedResults}${truncated}`
             }
           ]
         };
@@ -281,7 +281,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ **Error during search**: ${errorMessage}`
+              text: `**Error during search**: ${errorMessage}`
             }
           ],
           isError: true

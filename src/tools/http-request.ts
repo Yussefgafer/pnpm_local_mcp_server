@@ -46,7 +46,7 @@ const registerTool = (server: McpServer) => {
                 }
             }
         } catch (e: any) {
-            return { content: [{ type: 'text', text: `Error parsing JSON input: ${e.message}` }], isError: true };
+            return { content: [{ type: 'text', text: `**Error**: Parsing JSON input: ${e.message}` }], isError: true };
         }
 
         let proxyConfig: AxiosProxyConfig | undefined;
@@ -63,7 +63,7 @@ const registerTool = (server: McpServer) => {
                     } : undefined,
                 };
             } catch (e: any) {
-                return { content: [{ type: 'text', text: `Error: Invalid proxy URL: ${e.message}` }], isError: true };
+                return { content: [{ type: 'text', text: `**Error**: Invalid proxy URL: ${e.message}` }], isError: true };
             }
         }
         
@@ -109,12 +109,12 @@ const registerTool = (server: McpServer) => {
             data: error.response?.data,
           };
           return {
-            content: [{ type: 'text', text: `Error making HTTP request:\n${JSON.stringify(errorDetails, null, 2)}` }],
+            content: [{ type: 'text', text: `**Error**: HTTP request failed:\n${JSON.stringify(errorDetails, null, 2)}` }],
             isError: true
           };
         }
         return {
-          content: [{ type: 'text', text: `An unexpected error occurred: ${String(error)}` }],
+          content: [{ type: 'text', text: `**Error**: Unexpected error: ${String(error)}` }],
           isError: true
         };
       }

@@ -43,7 +43,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ Error: Path does not exist: ${targetPath}`
+                text: `**Error**: Path does not exist: ${targetPath}`
               }
             ],
             isError: true
@@ -95,7 +95,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ Error analyzing directory: ${errorMessage}`
+              text: `**Error analyzing directory**: ${errorMessage}`
             }
           ],
           isError: true

@@ -42,7 +42,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: filePath is required and cannot be empty.\n\n**Content saved to**: \`${tmpPath}\``
+                text: `**Error**: filePath is required and cannot be empty.\n\n**Content saved to**: \`${tmpPath}\``
               }
             ],
             isError: true
@@ -63,7 +63,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Insufficient permissions to write to: \`${filePath}\`\n\n**Content saved to**: \`${tmpPath}\``
+                text: `**Error**: Insufficient permissions to write to: \`${filePath}\`\n\n**Content saved to**: \`${tmpPath}\``
               }
             ],
             isError: true
@@ -82,7 +82,7 @@ const registerTool = (server: McpServer) => {
               content: [
                 {
                   type: 'text' as const,
-                  text: `❌ **Error**: Path is a directory, not a file: \`${filePath}\`\n\n**Content saved to**: \`${tmpPath}\``
+                  text: `**Error**: Path is a directory, not a file: \`${filePath}\`\n\n**Content saved to**: \`${tmpPath}\``
                 }
               ],
               isError: true
@@ -98,7 +98,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: File already exists at: \`${filePath}\`\n\n**Content saved to**: \`${tmpPath}\``
+                text: `**Error**: File already exists at: \`${filePath}\`\n\n**Content saved to**: \`${tmpPath}\``
               }
             ],
             isError: true
@@ -118,7 +118,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `✅ **Successfully wrote** ${formatFileSize(size)} to \`${filePath}\``
+              text: `**Success**: Wrote ${formatFileSize(size)} to \`${filePath}\``
             }
           ]
         };
@@ -133,7 +133,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ **Error writing file**: ${errorMessage}\n\n**Content saved to**: \`${tmpPath}\``
+              text: `**Error writing file**: ${errorMessage}\n\n**Content saved to**: \`${tmpPath}\``
             }
           ],
           isError: true

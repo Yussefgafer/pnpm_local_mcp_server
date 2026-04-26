@@ -42,7 +42,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: 'Error: path is required for create-item operation'
+                text: '**Error**: path is required for create-item operation'
               }
             ],
             isError: true
@@ -58,7 +58,7 @@ const registerTool = (server: McpServer) => {
               content: [
                 {
                   type: 'text' as const,
-                  text: `Error: ${existingType} already exists at ${targetPath}. Use overwrite: true to replace it.`
+                  text: `**Error**: ${existingType} already exists at \`${targetPath}\`. Use \`overwrite: true\` to replace it.`
                 }
               ],
               isError: true
@@ -78,7 +78,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `Successfully created directory: ${targetPath}`
+                text: `**Success**: Created directory: \`${targetPath}\``
               }
             ]
           };
@@ -94,7 +94,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `Successfully created file: ${targetPath}${content !== undefined ? ` with ${content.length} characters` : ''}`
+                text: `**Success**: Created file: \`${targetPath}\`${content !== undefined ? ` with ${content.length} characters` : ''}`
               }
             ]
           };
@@ -104,7 +104,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `Error creating ${type}: ${error.message}`
+              text: `**Error**: Creating ${type}: ${error.message}`
             }
           ],
           isError: true

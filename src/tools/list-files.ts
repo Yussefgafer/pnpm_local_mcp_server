@@ -39,7 +39,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Path does not exist: \`${targetPath}\``
+                text: `**Error**: Path does not exist: \`${targetPath}\``
               }
             ],
             isError: true
@@ -53,7 +53,7 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ **Error**: Path is not a directory: \`${targetPath}\``
+                text: `**Error**: Path is not a directory: \`${targetPath}\``
               }
             ],
             isError: true
@@ -118,18 +118,18 @@ const registerTool = (server: McpServer) => {
             content: [
               {
                 type: 'text' as const,
-                text: `📁 **${targetPath}**\n\n*Directory is empty*`
+                text: `**${targetPath}**\n\n*Directory is empty*`
               }
             ]
           };
         }
 
-        let result = `📁 **${targetPath}**\n\n`;
+        let result = `**${targetPath}**\n\n`;
         result += `| Name | Type | Size | Modified |\n`;
         result += `|------|------|------|----------|\\n`;
 
         for (const item of validItems) {
-          const icon = item.isDirectory ? '📂' : '📄';
+          const icon = item.isDirectory ? '[DIR]' : '[FILE]';
           const type = item.isDirectory ? 'Directory' : 'File';
           const size = item.isDirectory ? '-' : formatFileSize(item.size);
           const date = item.modified.toISOString().split('T')[0];
@@ -152,7 +152,7 @@ const registerTool = (server: McpServer) => {
           content: [
             {
               type: 'text' as const,
-              text: `❌ **Error listing files**: ${errorMessage}`
+              text: `**Error listing files**: ${errorMessage}`
             }
           ],
           isError: true
