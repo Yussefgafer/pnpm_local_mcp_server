@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
-import { getFileMetadata } from '../utils';
+import { getFileMetadata, validatePath } from '../utils';
 
 interface GrepResult {
   file: string;
@@ -79,7 +79,12 @@ async function searchInDirectory(
 
   try {
     const items = await fs.readdir(dirPath);
-    const fileRegex = new RegExp(filePattern.replace(/\*/g, '.*').replace(/\?/g, '.'));
+    // Escape special regex characters except * and ?
+    const escapedPattern = filePattern
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '.*')
+      .replace(/\?/g, '.');
+    const fileRegex = new RegExp(escapedPattern);
 
     for (const item of items) {
       if (currentResults.length >= maxResults) {
@@ -140,6 +145,10 @@ const registerTool = (server: McpServer) => {
       maxResults = 100,
     }) => {
       try {
+        // Security: Validate target path
+        const pathError = validatePath(targetPath);
+        if (pathError) return pathError;
+
         // Validate pattern
         if (!pattern) {
           return {
@@ -196,7 +205,20 @@ const registerTool = (server: McpServer) => {
           } else {
             // Non-recursive - only search files in root
             const items = await fs.readdir(targetPath);
-            const fileRegex = new RegExp(filePattern.replace(/\*/g, '.*').replace(/\?/g, '.'));
+            // Escape special regex characters except * and ?
+            const escapedPattern = filePattern
+              .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+              .replace(/\*/g, '.*')
+              .replace(/\?/g, '.');
+            let fileRegex: RegExp;
+            try {
+              fileRegex = new RegExp(escapedPattern);
+            } catch (e: any) {
+              return {
+                content: [{ type: 'text' as const, text: `Error: Invalid file pattern: ${e.message}` }],
+                isError: true
+              };
+            }
 
             for (const item of items) {
               const itemPath = path.join(targetPath, item);

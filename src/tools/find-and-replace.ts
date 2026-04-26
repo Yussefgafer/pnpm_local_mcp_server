@@ -31,7 +31,12 @@ export default function findAndReplace(server: McpServer) {
         let newContent: string;
 
         if (params.isRegex) {
-          const regex = new RegExp(params.search, params.replaceAll ? 'g' : '');
+          let regex: RegExp;
+          try {
+            regex = new RegExp(params.search, params.replaceAll ? 'g' : '');
+          } catch (e: any) {
+            return { content: [{ type: 'text', text: `Error: Invalid regex pattern: ${e.message}` }], isError: true };
+          }
           newContent = fileContent.replace(regex, params.replace);
         } else {
           if (params.replaceAll) {

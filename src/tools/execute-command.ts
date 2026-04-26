@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { spawn, SpawnOptions } from 'child_process';
+import { validatePath } from '../utils';
 
 /**
  * Tool: Execute Command
@@ -51,11 +52,18 @@ const registerExecuteCommandTool = (server: McpServer) => {
         stdio: waitForCompletion ? ['pipe', 'pipe', 'pipe'] : 'ignore',
       };
 
+      // Security: Validate working directory if provided
+      if (working_directory) {
+        const pathError = validatePath(working_directory);
+        if (pathError) return pathError;
+      }
+
       if (!waitForCompletion) {
         const child = spawn(command, spawnOptions);
         child.unref();
+        const pid = child.pid ?? 'unknown';
         return {
-          content: [{ type: 'text', text: `Command "${command}" started in background with PID: ${child.pid}` }]
+          content: [{ type: 'text', text: `Command "${command}" started in background with PID: ${pid}` }]
         };
       }
 
@@ -70,9 +78,13 @@ const registerExecuteCommandTool = (server: McpServer) => {
           child.stderr?.on('data', (data) => (stderr += data.toString()));
         }
 
-        if (stdin_data) {
-          child.stdin?.write(stdin_data);
-          child.stdin?.end();
+        if (stdin_data && child.stdin) {
+          try {
+            child.stdin.write(stdin_data);
+            child.stdin.end();
+          } catch {
+            // Ignore stdin errors (process may have already exited)
+          }
         }
 
         child.on('close', (code) => {

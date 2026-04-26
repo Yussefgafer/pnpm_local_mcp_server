@@ -48,28 +48,42 @@ async function main() {
     app.get('/sse', async (req, res) => {
       console.log('New SSE connection');
 
-      const transport = new SSEServerTransport('/messages', res);
-      const sessionId = transport.sessionId;
-      transports[sessionId] = transport;
+      try {
+        const transport = new SSEServerTransport('/messages', res);
+        const sessionId = transport.sessionId;
+        transports[sessionId] = transport;
 
-      // Clean up disconnected connections
-      res.on('close', () => {
-        console.log(`SSE connection closed: ${sessionId}`);
-        delete transports[sessionId];
-      });
+        // Clean up disconnected connections
+        res.on('close', () => {
+          console.log(`SSE connection closed: ${sessionId}`);
+          delete transports[sessionId];
+        });
 
-      await server.connect(transport);
+        await server.connect(transport);
+      } catch (error) {
+        console.error('Error handling SSE connection:', error);
+        if (!res.headersSent) {
+          res.status(500).send('Internal server error');
+        }
+      }
     });
 
     // Messages endpoint
     app.post('/messages', async (req, res) => {
-      const sessionId = req.query.sessionId as string;
-      const transport = transports[sessionId];
+      try {
+        const sessionId = req.query.sessionId as string;
+        const transport = transports[sessionId];
 
-      if (transport) {
-        await transport.handlePostMessage(req, res, req.body);
-      } else {
-        res.status(400).send('No transport found for session ID');
+        if (transport) {
+          await transport.handlePostMessage(req, res, req.body);
+        } else {
+          res.status(400).send('No transport found for session ID');
+        }
+      } catch (error) {
+        console.error('Error handling message:', error);
+        if (!res.headersSent) {
+          res.status(500).send('Internal server error');
+        }
       }
     });
 

@@ -51,16 +51,20 @@ const registerTool = (server: McpServer) => {
 
         let proxyConfig: AxiosProxyConfig | undefined;
         if (proxy) {
-            const proxyUrl = new URL(proxy);
-            proxyConfig = {
-                host: proxyUrl.hostname,
-                port: Number(proxyUrl.port),
-                protocol: proxyUrl.protocol.replace(':', ''),
-                auth: proxyUrl.username && proxyUrl.password ? {
-                    username: decodeURIComponent(proxyUrl.username),
-                    password: decodeURIComponent(proxyUrl.password),
-                } : undefined,
-            };
+            try {
+                const proxyUrl = new URL(proxy);
+                proxyConfig = {
+                    host: proxyUrl.hostname,
+                    port: Number(proxyUrl.port),
+                    protocol: proxyUrl.protocol.replace(':', ''),
+                    auth: proxyUrl.username && proxyUrl.password ? {
+                        username: decodeURIComponent(proxyUrl.username),
+                        password: decodeURIComponent(proxyUrl.password),
+                    } : undefined,
+                };
+            } catch (e: any) {
+                return { content: [{ type: 'text', text: `Error: Invalid proxy URL: ${e.message}` }], isError: true };
+            }
         }
         
         const authCredentials = auth ? { username: auth.split(':')[0], password: auth.split(':')[1] } : undefined;
