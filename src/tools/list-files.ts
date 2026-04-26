@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
-import { getDefaultPath, formatFileSize } from '../utils';
+import { getDefaultPath, formatFileSize, validatePath } from '../utils';
 
 /**
  * Tool: List Files
@@ -26,6 +26,12 @@ const registerTool = (server: McpServer) => {
       try {
         // Use cross-platform default path
         const targetPath = folderPath || getDefaultPath();
+
+        // Security: Validate path is within allowed directories (if provided)
+        if (folderPath) {
+          const pathError = validatePath(targetPath);
+          if (pathError) return pathError;
+        }
 
         // Check if path exists
         if (!(await fs.pathExists(targetPath))) {

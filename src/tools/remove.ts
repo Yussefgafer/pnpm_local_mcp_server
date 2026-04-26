@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
-import { formatFileSize } from '../utils';
+import { formatFileSize, validatePath } from '../utils';
 
 /**
  * Tool: Remove File or Directory
@@ -25,6 +25,10 @@ const registerTool = (server: McpServer) => {
       recursive = true,
     }) => {
       try {
+        // Security: Validate path is within allowed directories
+        const pathError = validatePath(targetPath);
+        if (pathError) return pathError;
+
         // Check if the path exists
         if (!(await fs.pathExists(targetPath))) {
           return {

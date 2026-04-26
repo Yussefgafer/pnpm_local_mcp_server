@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
-import { getFileMetadata, formatFileSize, FileMetadata } from '../utils';
+import { getFileMetadata, formatFileSize, FileMetadata, validatePath } from '../utils';
 
 /**
  * Tool: Read File
@@ -28,6 +28,10 @@ const registerTool = (server: McpServer) => {
       encoding = 'utf-8',
     }) => {
       try {
+        // Security: Validate path is within allowed directories
+        const pathError = validatePath(filePath);
+        if (pathError) return pathError;
+
         // Get comprehensive metadata using utils
         const metadata: FileMetadata = await getFileMetadata(filePath);
 

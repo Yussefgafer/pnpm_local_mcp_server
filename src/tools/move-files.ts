@@ -5,7 +5,8 @@ import * as path from 'path';
 import {
   formatFileSize,
   checkWritePermission,
-  getDirectoryStats
+  getDirectoryStats,
+  validatePath
 } from '../utils';
 
 /**
@@ -28,6 +29,13 @@ const registerTool = (server: McpServer) => {
     },
     async ({ sourcePath, targetPath, overwrite = false }) => {
       try {
+        // Security: Validate both source and target paths
+        const sourcePathError = validatePath(sourcePath);
+        if (sourcePathError) return sourcePathError;
+
+        const targetPathError = validatePath(targetPath);
+        if (targetPathError) return targetPathError;
+
         // Check if source exists
         if (!(await fs.pathExists(sourcePath))) {
           return {

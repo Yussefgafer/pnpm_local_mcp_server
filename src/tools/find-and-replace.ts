@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
+import { validatePath } from '../utils';
 
 export default function findAndReplace(server: McpServer) {
   server.registerTool(
@@ -18,6 +19,10 @@ export default function findAndReplace(server: McpServer) {
     },
     async (params: { path: string; search: string; replace: string; isRegex?: boolean; replaceAll?: boolean }) => {
       try {
+        // Security: Validate path is within allowed directories
+        const pathError = validatePath(params.path);
+        if (pathError) return pathError;
+
         if (!(await fs.pathExists(params.path))) {
           return { content: [{ type: 'text', text: `Error: File does not exist: ${params.path}` }], isError: true };
         }

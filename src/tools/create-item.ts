@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
+import { validatePath } from '../utils';
 
 /**
  * Tool: Create Item (File or Directory)
@@ -32,6 +33,10 @@ const registerTool = (server: McpServer) => {
       overwrite,
     }) => {
       try {
+        // Security: Validate path is within allowed directories
+        const pathError = validatePath(targetPath);
+        if (pathError) return pathError;
+
         if (!targetPath) {
           return {
             content: [

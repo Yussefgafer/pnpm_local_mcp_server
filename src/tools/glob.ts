@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
+import { validatePath } from '../utils';
 import * as path from 'path';
 import fg from 'fast-glob';
 
@@ -48,6 +49,12 @@ const registerTool = (server: McpServer) => {
 
         // Resolve base path
         const basePath = path.resolve(cwd);
+
+        // Security: Validate path is within allowed directories (if not current directory)
+        if (cwd !== '.') {
+          const pathError = validatePath(basePath);
+          if (pathError) return pathError;
+        }
 
         // Check if path exists
         if (!(await fs.pathExists(basePath))) {

@@ -5,6 +5,7 @@ import {
   getDefaultPath,
   getDirectoryStats,
   formatFileSize,
+  validatePath,
   DirectoryStats
 } from '../utils';
 
@@ -29,6 +30,12 @@ const registerTool = (server: McpServer) => {
       try {
         // Use cross-platform default path
         const targetPath = folderPath || getDefaultPath();
+
+        // Security: Validate path is within allowed directories (if provided)
+        if (folderPath) {
+          const pathError = validatePath(targetPath);
+          if (pathError) return pathError;
+        }
 
         // Check if path exists
         if (!(await fs.pathExists(targetPath))) {

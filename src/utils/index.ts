@@ -85,3 +85,12 @@ export {
 
 // Types must be exported separately for isolatedModules
 export type { DirectoryStats, DirectoryOptions } from './directory-utils';
+
+// ============================================================================
+// Security
+// ============================================================================
+
+export {
+  isPathAllowed,
+  validatePath
+} from './security';

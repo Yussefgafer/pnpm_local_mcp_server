@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
-import { saveToTmp, checkWritePermission, formatFileSize } from '../utils';
+import { saveToTmp, checkWritePermission, formatFileSize, validatePath } from '../utils';
 
 /**
  * Tool: Write File
@@ -18,8 +18,8 @@ const registerTool = (server: McpServer) => {
         'Writes content to a file only if it does NOT already exist. If the file exists or any error occurs, the content is saved to a temporary file in tmp/ and the path is returned in the error message.',
       inputSchema: {
         filePath: z.string().describe('The path of the file to write to.'),
-        content: z.union([z.string(), z.instanceof(Buffer)]).describe('The content to write (string or Buffer).'),
-        encoding: z.string().optional().default('utf-8').describe('File encoding for text content (default: utf-8).'),
+        content: z.string().describe('The content to write (string). For binary content, use base64 encoding.'),
+        encoding: z.enum(['utf-8', 'utf8', 'ascii', 'base64', 'latin1', 'hex']).optional().default('utf-8').describe('File encoding for content (default: utf-8). Use "base64" for binary data.'),
       }
     },
     async ({
@@ -28,7 +28,11 @@ const registerTool = (server: McpServer) => {
       encoding = 'utf-8',
     }) => {
       try {
-        // Validate filePath
+        // Security: Validate path is within allowed directories
+        const pathError = validatePath(filePath);
+        if (pathError) return pathError;
+
+        // Validate filePath is not empty
         if (!filePath || filePath.trim() === '') {
           const tmpPath = await saveToTmp(
             content,
@@ -106,8 +110,8 @@ const registerTool = (server: McpServer) => {
         await fs.writeFile(filePath, content, writeOptions);
 
         // Calculate size for display
-        const size = content instanceof Buffer
-          ? content.length
+        const size = encoding === 'base64'
+          ? Buffer.byteLength(content, 'base64')
           : Buffer.byteLength(content, encoding as BufferEncoding);
 
         return {

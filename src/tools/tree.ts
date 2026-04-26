@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import path from 'path';
-import { getDefaultPath } from '../utils';
+import { getDefaultPath, validatePath } from '../utils';
 
 /**
  * Recursively builds a tree representation of a directory
@@ -76,6 +76,12 @@ const registerTool = (server: McpServer) => {
     async ({ path: rootPath, maxDepth, ignore = ['node_modules', '.git', 'dist'] }) => {
       try {
         const targetPath = rootPath || getDefaultPath();
+
+        // Security: Validate path is within allowed directories (if provided)
+        if (rootPath) {
+          const pathError = validatePath(targetPath);
+          if (pathError) return pathError;
+        }
 
         if (!(await fs.pathExists(targetPath))) {
           return {
