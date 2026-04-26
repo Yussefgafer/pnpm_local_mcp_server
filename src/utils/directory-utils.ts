@@ -310,7 +310,7 @@ export async function getDirectoryStats(
   options: DirectoryOptions = {}
 ): Promise<DirectoryStats> {
   const {
-    maxDepth = Infinity,
+    maxDepth = 50, // Limit default depth to prevent stack overflow on deep directories
     ignore = DEFAULT_IGNORE,
     followSymlinks = false
   } = options;

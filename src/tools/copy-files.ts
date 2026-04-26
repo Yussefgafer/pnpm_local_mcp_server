@@ -93,7 +93,7 @@ const registerTool = (server: McpServer) => {
 
         if (isDirectory) {
           const dirStats = await getDirectoryStats(sourcePath, {
-            maxDepth: Infinity,
+            maxDepth: 50, // Limit depth to prevent freezing on huge/deep directories
             ignore: ['node_modules', '.git', 'dist']
           });
           sourceSize = dirStats.totalSize;

@@ -68,24 +68,31 @@ const registerTool = (server: McpServer) => {
           ? items
           : items.filter((item) => !item.startsWith('.'));
 
-        // Get detailed information
-        const fileDetails = await Promise.all(
-          filteredItems.map(async (item) => {
-            const itemPath = path.join(targetPath, item);
-            try {
-              const stats = await fs.stat(itemPath);
-              return {
-                name: item,
-                isDirectory: stats.isDirectory(),
-                size: stats.size,
-                modified: stats.mtime,
-              };
-            } catch {
-              // Skip items we can't stat
-              return null;
-            }
-          })
-        );
+        // Get detailed information with concurrency limit to prevent resource exhaustion
+        const CONCURRENCY_LIMIT = 100; // Process max 100 files concurrently
+        const fileDetails: Array<{name: string; isDirectory: boolean; size: number; modified: Date} | null> = [];
+
+        for (let i = 0; i < filteredItems.length; i += CONCURRENCY_LIMIT) {
+          const batch = filteredItems.slice(i, i + CONCURRENCY_LIMIT);
+          const batchResults = await Promise.all(
+            batch.map(async (item) => {
+              const itemPath = path.join(targetPath, item);
+              try {
+                const stats = await fs.stat(itemPath);
+                return {
+                  name: item,
+                  isDirectory: stats.isDirectory(),
+                  size: stats.size,
+                  modified: stats.mtime,
+                };
+              } catch {
+                // Skip items we can't stat
+                return null;
+              }
+            })
+          );
+          fileDetails.push(...batchResults);
+        }
 
         // Remove nulls and sort
         const validItems = fileDetails.filter((item): item is NonNullable<typeof item> => item !== null);
