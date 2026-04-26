@@ -24,6 +24,7 @@ const registerTool = (server: McpServer) => {
         ignore: z.array(z.string()).optional().default(['node_modules/**', '.git/**', 'dist/**']).describe('Patterns to ignore (default: ["node_modules/**", ".git/**", "dist/**"]).'),
         absolute: z.boolean().optional().default(true).describe('Return absolute paths (default: true) or relative paths.'),
         dot: z.boolean().optional().default(false).describe('Include hidden files (starting with .) in results (default: false).'),
+        maxResults: z.number().int().positive().optional().default(1000).describe('Maximum number of results to return (default: 1000).'),
       }
     },
     async ({
@@ -32,6 +33,7 @@ const registerTool = (server: McpServer) => {
       ignore = ['node_modules/**', '.git/**', 'dist/**'],
       absolute = true,
       dot = false,
+      maxResults = 1000,
     }) => {
       try {
         // Validate pattern
@@ -79,10 +81,13 @@ const registerTool = (server: McpServer) => {
           followSymbolicLinks: false,
         });
 
-        // Sort results for consistency
-        results.sort();
+        // Limit results for memory efficiency
+        const limitedResults = results.slice(0, maxResults);
 
-        if (results.length === 0) {
+        // Sort results for consistency
+        limitedResults.sort();
+
+        if (limitedResults.length === 0) {
           return {
             content: [
               {
@@ -94,8 +99,12 @@ const registerTool = (server: McpServer) => {
         }
 
         // Format output
-        let output = `📁 **Found ${results.length} file(s)** matching "${Array.isArray(pattern) ? pattern.join(', ') : pattern}":\n\n`;
-        output += results.join('\n');
+        let output = `📁 **Found ${results.length} file(s)** matching "${Array.isArray(pattern) ? pattern.join(', ') : pattern}":`;
+        if (results.length > maxResults) {
+          output += ` (showing first ${maxResults})`;
+        }
+        output += '\n\n';
+        output += limitedResults.join('\n');
 
         return {
           content: [

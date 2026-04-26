@@ -69,7 +69,7 @@ const registerTool = (server: McpServer) => {
       description: 'Generates a text-based tree view of a directory structure. Similar to the Unix `tree` command.',
       inputSchema: {
         path: z.string().optional().describe('Root directory path. Defaults to Desktop.'),
-        maxDepth: z.number().int().positive().optional().describe('Maximum depth to traverse (unlimited if not specified).'),
+        maxDepth: z.number().int().positive().optional().default(20).describe('Maximum depth to traverse (default: 20, unlimited if set to 0).'),
         ignore: z.array(z.string()).optional().default(['node_modules', '.git', 'dist']).describe('List of file/folder names to ignore.'),
       },
     },
