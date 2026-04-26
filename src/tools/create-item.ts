@@ -20,7 +20,7 @@ const registerTool = (server: McpServer) => {
         path: z.string().describe('The path where the file or directory should be created.'),
         type: z.enum(['file', 'directory']).describe('The type of item to create: "file" or "directory".'),
         content: z.string().optional().describe('Initial content for the file (only used when type="file").'),
-        encoding: z.string().optional().default('utf-8').describe('File encoding when writing content (only for type="file").'),
+        encoding: z.enum(['utf-8', 'utf8', 'ascii', 'base64', 'latin1', 'hex']).optional().default('utf-8').describe('File encoding when writing content (only for type="file").'),
         overwrite: z.boolean().optional().default(false).describe('If false, returns an error if the path already exists.'),
       }
     },
