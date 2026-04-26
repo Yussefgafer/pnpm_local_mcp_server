@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
-import { validatePath } from '../utils';
+import { validatePath, getFileMetadata } from '../utils';
 
 export default function findAndReplace(server: McpServer) {
   server.registerTool(
@@ -23,8 +23,16 @@ export default function findAndReplace(server: McpServer) {
         const pathError = validatePath(params.path);
         if (pathError) return pathError;
 
-        if (!(await fs.pathExists(params.path))) {
+        // Check file exists and size
+        const metadata = await getFileMetadata(params.path);
+        if (!metadata.exists) {
           return { content: [{ type: 'text', text: `Error: File does not exist: ${params.path}` }], isError: true };
+        }
+
+        // Prevent memory issues with huge files (10MB limit)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        if (metadata.size > MAX_FILE_SIZE) {
+          return { content: [{ type: 'text', text: `Error: File is too large (${(metadata.size / 1024 / 1024).toFixed(1)} MB). Maximum size for find-and-replace is 10 MB.` }], isError: true };
         }
 
         const fileContent = await fs.readFile(params.path, 'utf-8');

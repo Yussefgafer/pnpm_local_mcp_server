@@ -2,6 +2,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import fs from 'fs-extra';
 import * as path from 'path';
+import * as fsPromises from 'fs/promises';
+import * as readline from 'readline';
 import { getFileMetadata, validatePath } from '../utils';
 
 interface GrepResult {
@@ -29,17 +31,28 @@ async function searchInFile(
       return []; // Skip binary files silently
     }
 
-    const content = await fs.readFile(filePath, 'utf-8');
-    const lines = content.split('\n');
+    // Read file line by line for memory efficiency with large files
+    const fileStream = await fsPromises.open(filePath, 'r').then(fd => {
+      const stream = fd.createReadStream();
+      stream.on('close', () => fd.close());
+      return stream;
+    });
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
+
+    let lineNumber = 0;
+
+    for await (const line of rl) {
+      lineNumber++;
       const match = pattern.exec(line);
 
       if (match) {
         results.push({
           file: filePath,
-          line: i + 1,
+          line: lineNumber,
           content: line,
           matchIndex: match.index
         });

@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import fs from 'fs-extra';
+import * as fsPromises from 'fs/promises';
 import { getFileMetadata, formatFileSize, FileMetadata, validatePath } from '../utils';
 
 /**
@@ -87,30 +87,41 @@ const registerTool = (server: McpServer) => {
           };
         }
 
-        // Read file content
-        const content = await fs.readFile(filePath, encoding as BufferEncoding);
-        const totalChars = content.length;
-        const totalLines = content.split('\n').length;
+        // Read only up to maxChars for performance (avoid loading huge files into memory)
+        const maxBytesToRead = Math.min(maxChars * 4, metadata.size); // Estimate: 4 bytes per char max for UTF-8
+        const fd = await fsPromises.open(filePath, 'r');
+        let content: string;
+        let truncated = false;
 
-        // Check if content exceeds maxChars
-        if (totalChars > maxChars) {
-          const truncated = content.substring(0, maxChars);
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `${truncated}\n\n---\n📊 **File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}\n- **Showing**: First ${maxChars} characters\n- **Truncated**: ${totalChars - maxChars} characters hidden`
-              }
-            ]
-          };
+        try {
+          // Read buffer up to estimated size
+          const buffer = Buffer.alloc(maxBytesToRead);
+          const { bytesRead } = await fd.read(buffer, 0, maxBytesToRead, 0);
+
+          // Convert to string with proper encoding
+          content = buffer.toString(encoding as BufferEncoding, 0, bytesRead);
+
+          // If content is longer than maxChars, truncate it
+          if (content.length > maxChars) {
+            content = content.substring(0, maxChars);
+            truncated = true;
+          }
+        } finally {
+          await fd.close();
         }
 
-        // Return full content with statistics
+        const totalChars = content.length;
+        const totalLines = content.split('\n').length;
+        const isTruncated = truncated || metadata.size > maxBytesToRead;
+
+        // Return content with statistics
         return {
           content: [
             {
               type: 'text' as const,
-              text: `${content}\n\n---\n📊 **File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}`
+              text: isTruncated
+                ? `${content}\n\n---\n📊 **File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}\n- **Showing**: First ${maxChars} characters\n- **Truncated**: ${metadata.size > maxBytesToRead ? 'Yes (file partially read)' : `${content.length - maxChars} characters`}`
+                : `${content}\n\n---\n📊 **File Statistics**\n- **Lines**: ${totalLines}\n- **Characters**: ${totalChars}\n- **Size**: ${formatFileSize(metadata.size)}`
             }
           ]
         };

@@ -17,7 +17,6 @@ const ALLOWED_PATHS = [
   process.cwd(),
   process.env.HOME || '',
   '/tmp',
-  '/home',
 ].filter(Boolean);
 
 // ============================================================================
