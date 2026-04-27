@@ -1,5 +1,7 @@
 # File Operation MCP Server
 
+This project is a fork of [lxKylin/file-operation-mcp](https://github.com/lxKylin/file-operation-mcp), adapted for local use with pnpm.
+
 An MCP (Model Context Protocol) server for comprehensive file system operations, built with TypeScript and pnpm.
 
 ## Features
