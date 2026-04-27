@@ -29,12 +29,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git@github.com:lxKylin/file-operation-mcp"
+    "url": "https://github.com/Yussefgafer/pnpm_local_mcp_server.git"
   },
   "author": "lxKylin",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/lxKylin/file-operation-mcp/issues"
+    "url": "https://github.com/Yussefgafer/pnpm_local_mcp_server/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.15.1",
